@@ -82,7 +82,7 @@ pub fn parse_identifier(input: &[u8], c_src: &mut usize) -> Token {
 #[cfg(test)]
 mod tests {
     use super::super::*;
-    use ::internship::IStr;
+    use internship::IStr;
 
     should!(
         parsing_after_token,

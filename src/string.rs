@@ -1,4 +1,4 @@
-use crate::token::{Token, Number};
+use crate::token::{Number, Token};
 use std::{char::from_u32, str};
 
 // # Performance
@@ -41,8 +41,10 @@ fn to_unescaped(input: String) -> String {
                     for _ in 0..3 {
                         i.next();
                     }
-                    let as_num = u64::from_str_radix(unsafe { str::from_utf8_unchecked(nums) }, 16).unwrap_or(0);
-                    from_u32(as_num as u32).expect(format!("{} is not a valid unicode scalar value", as_num).as_str())
+                    let as_num = u64::from_str_radix(unsafe { str::from_utf8_unchecked(nums) }, 16)
+                        .unwrap_or(0);
+                    from_u32(as_num as u32)
+                        .expect(format!("{} is not a valid unicode scalar value", as_num).as_str())
                 }
                 'x' => {
                     let index = i.next().unwrap();
@@ -50,8 +52,10 @@ fn to_unescaped(input: String) -> String {
                     for _ in 0..3 {
                         i.next();
                     }
-                    let as_num = u64::from_str_radix(unsafe { str::from_utf8_unchecked(nums) }, 16).unwrap_or(0);
-                    from_u32(as_num as u32).expect(format!("{} is not a valid unicode scalar value", as_num).as_str())
+                    let as_num = u64::from_str_radix(unsafe { str::from_utf8_unchecked(nums) }, 16)
+                        .unwrap_or(0);
+                    from_u32(as_num as u32)
+                        .expect(format!("{} is not a valid unicode scalar value", as_num).as_str())
                 }
                 _ => *c as char,
             };
@@ -73,6 +77,9 @@ fn parse(input: &[u8], c_src: &mut usize, type_: u8) -> String {
         token_len += 1;
     }
     let res = unsafe { str::from_utf8_unchecked(&input[*c_src - token_len..*c_src]).to_string() };
+    let res2 =
+        unsafe { str::from_utf8_unchecked(&input[*c_src - token_len - 50..*c_src]).to_string() };
+    // println!("char {} {}", res, res2);
     let res = to_unescaped(res);
     *c_src += 1;
     res
@@ -87,7 +94,8 @@ pub fn parse_string(input: &[u8], c_src: &mut usize) -> Token {
 pub fn parse_char(input: &[u8], c_src: &mut usize) -> Token {
     let res = parse(input, c_src, b'\'');
     debug_assert_eq!(1, res.len());
-    Token::NumericLiteral(Number::new(res.chars().next().unwrap() as u32, 0, 0, 10))
+    // println!("\"{}\"", res);
+    Token::NumericLiteral(Number::new(res.chars().next().unwrap() as u64, 0, 0, 10))
 }
 
 #[cfg(test)]
@@ -109,7 +117,10 @@ mod tests {
     should!(
         string_single_unescape,
         "'\t'",
-        vec![Token::NumericLiteral(Number::new(b'\t' as u32, 0, 0, 10)), Token::EOF]
+        vec![
+            Token::NumericLiteral(Number::new(b'\t' as u64, 0, 0, 10)),
+            Token::EOF
+        ]
     );
 
     should!(
@@ -141,5 +152,4 @@ mod tests {
         "\"\\x4E\"",
         vec![Token::StringLiteral(String::from("N")), Token::EOF]
     );
-
 }

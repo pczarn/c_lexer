@@ -6,13 +6,13 @@ extern crate phf;
 pub mod token;
 #[macro_use]
 mod macros;
+mod equivalence;
+pub mod error;
 mod identifier;
 mod number;
-mod string;
 mod state;
-mod equivalence;
 mod state_machine;
-pub mod error;
+mod string;
 
 /// Module for efficient string representation
 pub mod internship {
@@ -29,9 +29,13 @@ pub struct Lexer;
 
 impl Lexer {
     /// Transform string to stream of tokens
-    pub fn lex(s: &str) -> Result<Vec<Token>, error::Error> {
+    pub fn lex(s: &str) -> Result<Vec<TokenWithRange>, error::Error> {
         let mut tokens = parse(s)?;
-        tokens.push(Token::EOF);
+        tokens.push(TokenWithRange {
+            token: Token::EOF,
+            start: 0,
+            end: 0,
+        });
         Ok(tokens)
     }
 }

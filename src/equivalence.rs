@@ -18,7 +18,7 @@ pub enum Equivalence {
     Exclamation,  // starts with !
     Plus,         // starts with +
     Multi,        // *
-    Slash,       // /
+    Slash,        // /
     Colon,        // :
     QuestionMark, // ?
     Comma,        // ,

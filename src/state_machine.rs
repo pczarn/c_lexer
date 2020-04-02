@@ -5,7 +5,7 @@ use crate::{
     number::{parse_exponent, parse_number, parse_number_decimal, parse_number_radix},
     state::*,
     string,
-    token::Token,
+    token::{Token, TokenWithRange},
 };
 use std::str;
 
@@ -189,90 +189,174 @@ impl StateMachineWrapper {
     #[inline]
     fn step(self, e: Equivalence) -> Self {
         match (self, e) {
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::LineTerminator) => StateMachineWrapper::LineTerminator(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::White) => StateMachineWrapper::WhiteSpace(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Slash) => StateMachineWrapper::Slash(s.into()), // /
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Dot) => StateMachineWrapper::DotPart(s.into()),
-            (StateMachineWrapper::Slash(s), Equivalence::Assign) => StateMachineWrapper::SlashAcc(s.into()), // /
-            (StateMachineWrapper::Slash(s), Equivalence::Slash) => StateMachineWrapper::SingleLineComment(s.into()), // //
-            (StateMachineWrapper::Slash(s), Equivalence::Multi) => StateMachineWrapper::MultiLineComment(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::LineTerminator) => {
+                StateMachineWrapper::LineTerminator(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::White) => {
+                StateMachineWrapper::WhiteSpace(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Slash) => {
+                StateMachineWrapper::Slash(s.into())
+            } // /
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Dot) => {
+                StateMachineWrapper::DotPart(s.into())
+            }
+            (StateMachineWrapper::Slash(s), Equivalence::Assign) => {
+                StateMachineWrapper::SlashAcc(s.into())
+            } // /
+            (StateMachineWrapper::Slash(s), Equivalence::Slash) => {
+                StateMachineWrapper::SingleLineComment(s.into())
+            } // //
+            (StateMachineWrapper::Slash(s), Equivalence::Multi) => {
+                StateMachineWrapper::MultiLineComment(s.into())
+            }
             (StateMachineWrapper::Slash(s), _) => StateMachineWrapper::SlashAcc(s.into()),
 
             // single line comment
-            (StateMachineWrapper::SingleLineComment(s), Equivalence::LineTerminator) => StateMachineWrapper::SingleLineCommentAcc(s.into()),
-            (StateMachineWrapper::SingleLineComment(s), _) => StateMachineWrapper::SingleLineComment(s),
+            (StateMachineWrapper::SingleLineComment(s), Equivalence::LineTerminator) => {
+                StateMachineWrapper::SingleLineCommentAcc(s.into())
+            }
+            (StateMachineWrapper::SingleLineComment(s), _) => {
+                StateMachineWrapper::SingleLineComment(s)
+            }
 
             // Multiline comment
-            (StateMachineWrapper::MultiLineComment(s), Equivalence::Multi) => StateMachineWrapper::MultiLineCommentStar(s.into()),
-            (StateMachineWrapper::MultiLineCommentStar(s), Equivalence::Multi) => StateMachineWrapper::MultiLineCommentStar(s),
-            (StateMachineWrapper::MultiLineCommentStar(s), Equivalence::Slash) => StateMachineWrapper::MultiLineCommentAcc(s.into()),
+            (StateMachineWrapper::MultiLineComment(s), Equivalence::Multi) => {
+                StateMachineWrapper::MultiLineCommentStar(s.into())
+            }
+            (StateMachineWrapper::MultiLineCommentStar(s), Equivalence::Multi) => {
+                StateMachineWrapper::MultiLineCommentStar(s)
+            }
+            (StateMachineWrapper::MultiLineCommentStar(s), Equivalence::Slash) => {
+                StateMachineWrapper::MultiLineCommentAcc(s.into())
+            }
 
-            (StateMachineWrapper::MultiLineComment(s), _) => StateMachineWrapper::MultiLineComment(s),
-            (StateMachineWrapper::MultiLineCommentStar(s), _) => StateMachineWrapper::MultiLineComment(s.into()),
+            (StateMachineWrapper::MultiLineComment(s), _) => {
+                StateMachineWrapper::MultiLineComment(s)
+            }
+            (StateMachineWrapper::MultiLineCommentStar(s), _) => {
+                StateMachineWrapper::MultiLineComment(s.into())
+            }
             // Identifier
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Letter) => StateMachineWrapper::Identifier(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::A) => StateMachineWrapper::Identifier(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::B) => StateMachineWrapper::Identifier(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::C) => StateMachineWrapper::Identifier(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::D) => StateMachineWrapper::Identifier(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Letter) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::A) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::B) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::C) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::D) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
 
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::E) => StateMachineWrapper::Identifier(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::F) => StateMachineWrapper::Identifier(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::O) => StateMachineWrapper::Identifier(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::X) => StateMachineWrapper::Identifier(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::E) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::F) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::O) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::X) => {
+                StateMachineWrapper::Identifier(s.into())
+            }
 
             // Punctuator
             (StateMachineWrapper::LBrace(s), _) => StateMachineWrapper::LBraceAcc(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::LBrace) => StateMachineWrapper::LBrace(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::RBrace) => StateMachineWrapper::RBrace(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::LBrace) => {
+                StateMachineWrapper::LBrace(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::RBrace) => {
+                StateMachineWrapper::RBrace(s.into())
+            }
             (StateMachineWrapper::RBrace(s), _) => StateMachineWrapper::RBraceAcc(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::LParen) => StateMachineWrapper::LParen(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::LParen) => {
+                StateMachineWrapper::LParen(s.into())
+            }
             (StateMachineWrapper::LParen(s), _) => StateMachineWrapper::LParenAcc(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::RParen) => StateMachineWrapper::RParen(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::RParen) => {
+                StateMachineWrapper::RParen(s.into())
+            }
             (StateMachineWrapper::RParen(s), _) => StateMachineWrapper::RParenAcc(s.into()),
 
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::LBracket) => StateMachineWrapper::LBracket(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::LBracket) => {
+                StateMachineWrapper::LBracket(s.into())
+            }
             (StateMachineWrapper::LBracket(s), _) => StateMachineWrapper::LBracketAcc(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::RBracket) => StateMachineWrapper::RBracket(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::RBracket) => {
+                StateMachineWrapper::RBracket(s.into())
+            }
 
             (StateMachineWrapper::RBracket(s), _) => StateMachineWrapper::RBracketAcc(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Semicolon) => StateMachineWrapper::Semicolon(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Semicolon) => {
+                StateMachineWrapper::Semicolon(s.into())
+            }
             (StateMachineWrapper::Semicolon(s), _) => StateMachineWrapper::SemicolonAcc(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Comma) => StateMachineWrapper::Comma(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Comma) => {
+                StateMachineWrapper::Comma(s.into())
+            }
             (StateMachineWrapper::Comma(s), _) => StateMachineWrapper::CommaAcc(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Colon) => StateMachineWrapper::Colon(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Colon) => {
+                StateMachineWrapper::Colon(s.into())
+            }
             (StateMachineWrapper::Colon(s), _) => StateMachineWrapper::ColonAcc(s.into()),
 
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::QuestionMark) => StateMachineWrapper::QuestionMark(s.into()),
-            (StateMachineWrapper::QuestionMark(s), _) => StateMachineWrapper::QuestionMarkAcc(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Tilde) => StateMachineWrapper::Tilde(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::QuestionMark) => {
+                StateMachineWrapper::QuestionMark(s.into())
+            }
+            (StateMachineWrapper::QuestionMark(s), _) => {
+                StateMachineWrapper::QuestionMarkAcc(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Tilde) => {
+                StateMachineWrapper::Tilde(s.into())
+            }
 
             (StateMachineWrapper::Tilde(s), _) => StateMachineWrapper::TildeAcc(s.into()),
 
             // Less than
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Lt) => StateMachineWrapper::Lt(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Lt) => {
+                StateMachineWrapper::Lt(s.into())
+            }
             (StateMachineWrapper::Lt(s), Equivalence::Assign) => StateMachineWrapper::Lt(s),
             (StateMachineWrapper::Lt(s), Equivalence::Lt) => StateMachineWrapper::Lt(s),
             (StateMachineWrapper::Lt(s), _) => StateMachineWrapper::LtAcc(s.into()),
 
             // Greater than
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Gt) => StateMachineWrapper::Gt(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Gt) => {
+                StateMachineWrapper::Gt(s.into())
+            }
             (StateMachineWrapper::Gt(s), Equivalence::Assign) => StateMachineWrapper::Gt(s),
             (StateMachineWrapper::Gt(s), Equivalence::Gt) => StateMachineWrapper::Gt(s),
             (StateMachineWrapper::Gt(s), _) => StateMachineWrapper::GtAcc(s.into()),
 
             // Assign
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Assign) => StateMachineWrapper::Assign(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Assign) => {
+                StateMachineWrapper::Assign(s.into())
+            }
             (StateMachineWrapper::Assign(s), Equivalence::Assign) => StateMachineWrapper::Assign(s),
             (StateMachineWrapper::Assign(s), _) => StateMachineWrapper::AssignAcc(s.into()),
 
             // Exclamation
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Exclamation) => StateMachineWrapper::Exclamation(s.into()),
-            (StateMachineWrapper::Exclamation(s), Equivalence::Assign) => StateMachineWrapper::Exclamation(s),
-            (StateMachineWrapper::Exclamation(s), _) => StateMachineWrapper::ExclamationAcc(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Exclamation) => {
+                StateMachineWrapper::Exclamation(s.into())
+            }
+            (StateMachineWrapper::Exclamation(s), Equivalence::Assign) => {
+                StateMachineWrapper::Exclamation(s)
+            }
+            (StateMachineWrapper::Exclamation(s), _) => {
+                StateMachineWrapper::ExclamationAcc(s.into())
+            }
 
             // Plus
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Plus) => StateMachineWrapper::Plus(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Plus) => {
+                StateMachineWrapper::Plus(s.into())
+            }
 
             (StateMachineWrapper::Plus(s), Equivalence::Plus) => StateMachineWrapper::Plus(s),
 
@@ -281,116 +365,252 @@ impl StateMachineWrapper {
             (StateMachineWrapper::Plus(s), _) => StateMachineWrapper::PlusAcc(s.into()),
 
             // Minus
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Minus) => StateMachineWrapper::Minus(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Minus) => {
+                StateMachineWrapper::Minus(s.into())
+            }
             (StateMachineWrapper::Minus(s), Equivalence::Minus) => StateMachineWrapper::Minus(s),
             (StateMachineWrapper::Minus(s), Equivalence::Gt) => StateMachineWrapper::Minus(s),
             (StateMachineWrapper::Minus(s), Equivalence::Assign) => StateMachineWrapper::Minus(s),
             (StateMachineWrapper::Minus(s), _) => StateMachineWrapper::MinusAcc(s.into()),
 
             // Multi
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Multi) => StateMachineWrapper::Multi(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Multi) => {
+                StateMachineWrapper::Multi(s.into())
+            }
             (StateMachineWrapper::Multi(s), Equivalence::Multi) => StateMachineWrapper::Multi(s),
             (StateMachineWrapper::Multi(s), Equivalence::Assign) => StateMachineWrapper::Multi(s),
             (StateMachineWrapper::Multi(s), _) => StateMachineWrapper::MultiAcc(s.into()),
 
             // Mod
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Mod) => StateMachineWrapper::Mod(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Mod) => {
+                StateMachineWrapper::Mod(s.into())
+            }
             (StateMachineWrapper::Mod(s), Equivalence::Mod) => StateMachineWrapper::Mod(s),
             (StateMachineWrapper::Mod(s), Equivalence::Assign) => StateMachineWrapper::Mod(s),
             (StateMachineWrapper::Mod(s), _) => StateMachineWrapper::ModAcc(s.into()),
 
             // and
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::SingleAnd) => StateMachineWrapper::And(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::SingleAnd) => {
+                StateMachineWrapper::And(s.into())
+            }
             (StateMachineWrapper::And(s), Equivalence::SingleAnd) => StateMachineWrapper::And(s),
             (StateMachineWrapper::And(s), Equivalence::Assign) => StateMachineWrapper::And(s),
             (StateMachineWrapper::And(s), _) => StateMachineWrapper::AndAcc(s.into()),
             // or
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::InclusiveOr) => StateMachineWrapper::Or(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::InclusiveOr) => {
+                StateMachineWrapper::Or(s.into())
+            }
 
             (StateMachineWrapper::Or(s), Equivalence::InclusiveOr) => StateMachineWrapper::Or(s),
             (StateMachineWrapper::Or(s), Equivalence::Assign) => StateMachineWrapper::Or(s),
             (StateMachineWrapper::Or(s), _) => StateMachineWrapper::OrAcc(s.into()),
             // ExclusiveOr
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::ExclusiveOr) => StateMachineWrapper::ExclusiveOr(s.into()),
-            (StateMachineWrapper::ExclusiveOr(s), Equivalence::ExclusiveOr) => StateMachineWrapper::ExclusiveOr(s),
-            (StateMachineWrapper::ExclusiveOr(s), Equivalence::Assign) => StateMachineWrapper::ExclusiveOr(s),
-            (StateMachineWrapper::ExclusiveOr(s), _) => StateMachineWrapper::ExclusiveOrAcc(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::ExclusiveOr) => {
+                StateMachineWrapper::ExclusiveOr(s.into())
+            }
+            (StateMachineWrapper::ExclusiveOr(s), Equivalence::ExclusiveOr) => {
+                StateMachineWrapper::ExclusiveOr(s)
+            }
+            (StateMachineWrapper::ExclusiveOr(s), Equivalence::Assign) => {
+                StateMachineWrapper::ExclusiveOr(s)
+            }
+            (StateMachineWrapper::ExclusiveOr(s), _) => {
+                StateMachineWrapper::ExclusiveOrAcc(s.into())
+            }
 
             // string
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::String) => StateMachineWrapper::String(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::String) => {
+                StateMachineWrapper::String(s.into())
+            }
 
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Char) => StateMachineWrapper::Char(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Char) => {
+                StateMachineWrapper::Char(s.into())
+            }
             // numbers
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Zero) => StateMachineWrapper::SawZero(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Zero) => {
+                StateMachineWrapper::SawZero(s.into())
+            }
 
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::One) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Two) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Three) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Four) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Five) => StateMachineWrapper::Decimal(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::One) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Two) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Three) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Four) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Five) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
 
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Six) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::Seven) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::InputElementDiv(s), Equivalence::EightNine) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::B) => StateMachineWrapper::Binary(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::O) => StateMachineWrapper::Octal(s.into()),
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Six) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::Seven) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::InputElementDiv(s), Equivalence::EightNine) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::SawZero(s), Equivalence::B) => {
+                StateMachineWrapper::Binary(s.into())
+            }
+            (StateMachineWrapper::SawZero(s), Equivalence::O) => {
+                StateMachineWrapper::Octal(s.into())
+            }
 
             (StateMachineWrapper::SawZero(s), Equivalence::X) => StateMachineWrapper::Hex(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::One) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::Two) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::Three) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::Four) => StateMachineWrapper::Decimal(s.into()),
+            (StateMachineWrapper::SawZero(s), Equivalence::One) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::SawZero(s), Equivalence::Two) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::SawZero(s), Equivalence::Three) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::SawZero(s), Equivalence::Four) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
 
-            (StateMachineWrapper::SawZero(s), Equivalence::Five) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::Six) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::Seven) => StateMachineWrapper::Decimal(s.into()),
-            (StateMachineWrapper::SawZero(s), Equivalence::EightNine) => StateMachineWrapper::Decimal(s.into()),
+            (StateMachineWrapper::SawZero(s), Equivalence::Five) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::SawZero(s), Equivalence::Six) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::SawZero(s), Equivalence::Seven) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
+            (StateMachineWrapper::SawZero(s), Equivalence::EightNine) => {
+                StateMachineWrapper::Decimal(s.into())
+            }
             (StateMachineWrapper::SawZero(s), _) => StateMachineWrapper::DecimalAcc(s.into()),
             (StateMachineWrapper::Decimal(s), Equivalence::Zero) => StateMachineWrapper::Decimal(s),
             (StateMachineWrapper::Decimal(s), Equivalence::One) => StateMachineWrapper::Decimal(s),
             (StateMachineWrapper::Decimal(s), Equivalence::Two) => StateMachineWrapper::Decimal(s),
-            (StateMachineWrapper::Decimal(s), Equivalence::Three) => StateMachineWrapper::Decimal(s),
+            (StateMachineWrapper::Decimal(s), Equivalence::Three) => {
+                StateMachineWrapper::Decimal(s)
+            }
             (StateMachineWrapper::Decimal(s), Equivalence::Four) => StateMachineWrapper::Decimal(s),
             (StateMachineWrapper::Decimal(s), Equivalence::Five) => StateMachineWrapper::Decimal(s),
             (StateMachineWrapper::Decimal(s), Equivalence::Six) => StateMachineWrapper::Decimal(s),
-            (StateMachineWrapper::Decimal(s), Equivalence::Seven) => StateMachineWrapper::Decimal(s),
-            (StateMachineWrapper::Decimal(s), Equivalence::EightNine) => StateMachineWrapper::Decimal(s),
-            (StateMachineWrapper::Decimal(s), Equivalence::Dot) => StateMachineWrapper::DecimalDigits(s.into()),
-            (StateMachineWrapper::Decimal(s), Equivalence::E) => StateMachineWrapper::DecimalExponent(s.into()),
+            (StateMachineWrapper::Decimal(s), Equivalence::Seven) => {
+                StateMachineWrapper::Decimal(s)
+            }
+            (StateMachineWrapper::Decimal(s), Equivalence::EightNine) => {
+                StateMachineWrapper::Decimal(s)
+            }
+            (StateMachineWrapper::Decimal(s), Equivalence::Dot) => {
+                StateMachineWrapper::DecimalDigits(s.into())
+            }
+            (StateMachineWrapper::Decimal(s), Equivalence::E) => {
+                StateMachineWrapper::DecimalExponent(s.into())
+            }
             (StateMachineWrapper::Decimal(s), _) => StateMachineWrapper::DecimalAcc(s.into()),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::Zero) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::One) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::Two) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::Three) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::Four) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::Five) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::Six) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::Seven) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::EightNine) => StateMachineWrapper::DecimalDigits(s),
-            (StateMachineWrapper::DecimalDigits(s), Equivalence::E) => StateMachineWrapper::DecimalExponent(s.into()),
-            (StateMachineWrapper::DecimalDigits(s), _) => StateMachineWrapper::DecimalDigitsAcc(s.into()),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Zero) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::One) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Two) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Three) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Four) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Five) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Six) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Seven) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::EightNine) => StateMachineWrapper::DecimalExponent(s),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Minus) => StateMachineWrapper::DecimalExponentSigned(s.into()),
-            (StateMachineWrapper::DecimalExponent(s), Equivalence::Plus) => StateMachineWrapper::DecimalExponentSigned(s.into()),
-            (StateMachineWrapper::DecimalExponent(s), _) => StateMachineWrapper::DecimalExponentAcc(s.into()),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Zero) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::One) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Two) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Three) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Four) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Five) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Six) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Seven) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::EightNine) => StateMachineWrapper::DecimalExponentSigned(s),
-            (StateMachineWrapper::DecimalExponentSigned(s), _) => StateMachineWrapper::DecimalExponentSignedAcc(s.into()),
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::Zero) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::One) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::Two) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::Three) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::Four) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::Five) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::Six) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::Seven) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::EightNine) => {
+                StateMachineWrapper::DecimalDigits(s)
+            }
+            (StateMachineWrapper::DecimalDigits(s), Equivalence::E) => {
+                StateMachineWrapper::DecimalExponent(s.into())
+            }
+            (StateMachineWrapper::DecimalDigits(s), _) => {
+                StateMachineWrapper::DecimalDigitsAcc(s.into())
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Zero) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::One) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Two) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Three) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Four) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Five) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Six) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Seven) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::EightNine) => {
+                StateMachineWrapper::DecimalExponent(s)
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Minus) => {
+                StateMachineWrapper::DecimalExponentSigned(s.into())
+            }
+            (StateMachineWrapper::DecimalExponent(s), Equivalence::Plus) => {
+                StateMachineWrapper::DecimalExponentSigned(s.into())
+            }
+            (StateMachineWrapper::DecimalExponent(s), _) => {
+                StateMachineWrapper::DecimalExponentAcc(s.into())
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Zero) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::One) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Two) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Three) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Four) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Five) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Six) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::Seven) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), Equivalence::EightNine) => {
+                StateMachineWrapper::DecimalExponentSigned(s)
+            }
+            (StateMachineWrapper::DecimalExponentSigned(s), _) => {
+                StateMachineWrapper::DecimalExponentSignedAcc(s.into())
+            }
             (StateMachineWrapper::Octal(s), Equivalence::Zero) => StateMachineWrapper::Octal(s),
             (StateMachineWrapper::Octal(s), Equivalence::One) => StateMachineWrapper::Octal(s),
             (StateMachineWrapper::Octal(s), Equivalence::Two) => StateMachineWrapper::Octal(s),
@@ -419,8 +639,10 @@ impl StateMachineWrapper {
             (StateMachineWrapper::Binary(s), Equivalence::One) => StateMachineWrapper::Binary(s),
             (StateMachineWrapper::Binary(s), Equivalence::Zero) => StateMachineWrapper::Binary(s),
             (StateMachineWrapper::Binary(s), _) => StateMachineWrapper::BinaryAcc(s.into()),
-            (_, Equivalence::HELL) => StateMachineWrapper::InputElementDiv(StateMachine::<InputElementDiv>::new()),
-            a => unreachable!("Invalid state:  {:?} ", a)
+            (_, Equivalence::HELL) => {
+                StateMachineWrapper::InputElementDiv(StateMachine::<InputElementDiv>::new())
+            }
+            a => unreachable!("Invalid state:  {:?} ", a),
         }
     }
 
@@ -506,7 +728,7 @@ impl StateMachineWrapper {
 }
 
 #[inline]
-pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
+pub fn parse(input: &str) -> Result<Vec<TokenWithRange>, Error> {
     let mut st = StateMachineWrapper::InputElementDiv(StateMachine::<InputElementDiv>::new());
     let input = input.as_bytes();
     let mut tokens = Vec::with_capacity(input.len());
@@ -514,8 +736,14 @@ pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
     let mut c_src: usize = 0;
     let mut token_len: u64 = 0;
     while c_src < input.len() {
+        let c_src_start = c_src;
         while !st.is_final() {
             let ch = unsafe { *input.get_unchecked(c_src) };
+            if ch == '`' as u8 {
+                unsafe {
+                    // println!("{}", str::from_utf8_unchecked(&input[c_src - 50..c_src + 1]));
+                }
+            }
             st = st.step(EQUIVALENCE_CLASS[ch as usize]);
             c_src += 1;
             token_len += 1;
@@ -528,7 +756,11 @@ pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
             .or_else(|| state_match(st, input, &mut c_src, token_len).unwrap());
         c_src -= 1;
         if token.is_some() {
-            tokens.push(token.unwrap());
+            tokens.push(TokenWithRange {
+                token: token.unwrap(),
+                start: c_src_start,
+                end: c_src,
+            });
         }
 
         st = StateMachineWrapper::InputElementDiv(StateMachine::<InputElementDiv>::new());
@@ -551,27 +783,34 @@ fn state_match(
         // comment and replace comment with line terminator
         StateMachineWrapper::SingleLineCommentAcc(_) => Some(Token::LineTerminator),
         StateMachineWrapper::MultiLineCommentAcc(_) => None,
-        StateMachineWrapper::SlashAcc(_) =>
+        StateMachineWrapper::SlashAcc(_) => {
             if input[*c_src - token_len as usize + 1] == b'=' {
                 Some(Token::DivAssign)
             } else {
                 Some(Token::Slash)
-            },
+            }
+        }
         StateMachineWrapper::String(_) => Some(string::parse_string(input, c_src)),
         StateMachineWrapper::Char(_) => Some(string::parse_char(input, c_src)),
-        StateMachineWrapper::BinaryAcc(_) => Some(parse_number_radix(input, c_src, token_len, 2)?),
-        StateMachineWrapper::OctalAcc(_) => Some(parse_number_radix(input, c_src, token_len, 8)?),
-        StateMachineWrapper::HexAcc(_) => Some(parse_number_radix(input, c_src, token_len, 16)?),
-        StateMachineWrapper::DecimalAcc(_) => Some(parse_number(input, c_src, token_len)?),
+        StateMachineWrapper::BinaryAcc(_) => {
+            Some(parse_number_radix(input, c_src, token_len, 2).unwrap())
+        }
+        StateMachineWrapper::OctalAcc(_) => {
+            Some(parse_number_radix(input, c_src, token_len, 8).unwrap())
+        }
+        StateMachineWrapper::HexAcc(_) => {
+            Some(parse_number_radix(input, c_src, token_len, 16).unwrap())
+        }
+        StateMachineWrapper::DecimalAcc(_) => Some(parse_number(input, c_src, token_len).unwrap()),
         StateMachineWrapper::DotPart(_) => Some(parse_dot(input, c_src)),
         StateMachineWrapper::DecimalDigitsAcc(_) => {
-            Some(parse_number_decimal(input, c_src, token_len)?)
+            Some(parse_number_decimal(input, c_src, token_len).unwrap())
         }
         StateMachineWrapper::DecimalExponentSignedAcc(_) => {
-            Some(parse_exponent(input, c_src, token_len)?)
+            Some(parse_exponent(input, c_src, token_len).unwrap())
         }
         StateMachineWrapper::DecimalExponentAcc(_) => {
-            Some(parse_exponent(input, c_src, token_len)?)
+            Some(parse_exponent(input, c_src, token_len).unwrap())
         }
         StateMachineWrapper::Identifier(_) => Some(identifier::parse_identifier(input, c_src)),
         _ => None,
@@ -657,13 +896,11 @@ mod tests {
 
     should!(bigger_double, ">> ", vec![Token::RightOp, Token::EOF]);
 
-
     should!(
         bigger_double_equal,
         ">>= ",
         vec![Token::RightAssign, Token::EOF]
     );
-
 
     should!(assign, "= ", vec![Token::Assign, Token::EOF]);
 
@@ -673,11 +910,7 @@ mod tests {
 
     should!(exclamation, "! ", vec![Token::Exclamation, Token::EOF]);
 
-    should!(
-        exclamation_assign,
-        "!= ",
-        vec![Token::NeOp, Token::EOF]
-    );
+    should!(exclamation_assign, "!= ", vec![Token::NeOp, Token::EOF]);
 
     should!(plus, "+ ", vec![Token::Plus, Token::EOF]);
 
@@ -695,14 +928,9 @@ mod tests {
 
     should!(star_assign, "*= ", vec![Token::MulAssign, Token::EOF]);
 
-
     should!(percent, "% ", vec![Token::Mod, Token::EOF]);
 
-    should!(
-        percent_assign,
-        "%= ",
-        vec![Token::ModAssign, Token::EOF]
-    );
+    should!(percent_assign, "%= ", vec![Token::ModAssign, Token::EOF]);
 
     should!(and, "& ", vec![Token::SingleAnd, Token::EOF]);
 
@@ -731,7 +959,6 @@ mod tests {
     should!(slash, "/ ", vec![Token::Slash, Token::EOF]);
 
     should!(keyowrd, "auto ", vec![Token::AUTO, Token::EOF]);
-
 
     should!(comma, ", ", vec![Token::Comma, Token::EOF]);
 
